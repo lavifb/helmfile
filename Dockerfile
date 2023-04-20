@@ -18,6 +18,8 @@ LABEL org.opencontainers.image.source https://github.com/helmfile/helmfile
 
 RUN apk add --no-cache ca-certificates git bash curl jq openssh-client gnupg
 
+ARG TARGETARCH
+
 # Set Helm home variables so that also non-root users can use plugins etc.
 ARG HOME="/helm"
 ENV HOME="${HOME}"
@@ -32,13 +34,13 @@ ARG HELM_VERSION="v3.11.3"
 ENV HELM_VERSION="${HELM_VERSION}"
 ARG HELM_SHA256="ca2d5d40d4cdfb9a3a6205dd803b5bc8def00bd2f13e5526c127e9b667974a89"
 ARG HELM_LOCATION="https://get.helm.sh"
-ARG HELM_FILENAME="helm-${HELM_VERSION}-linux-amd64.tar.gz"
+ARG HELM_FILENAME="helm-${HELM_VERSION}-linux-${TARGETARCH}.tar.gz"
 RUN set -x && \
     curl --retry 5 --retry-connrefused -LO "${HELM_LOCATION}/${HELM_FILENAME}" && \
     echo Verifying ${HELM_FILENAME}... && \
     echo "${HELM_SHA256}  ${HELM_FILENAME}" | sha256sum -c && \
     echo Extracting ${HELM_FILENAME}... && \
-    tar xvf "${HELM_FILENAME}" -C /usr/local/bin --strip-components 1 linux-amd64/helm && \
+    tar xvf "${HELM_FILENAME}" -C /usr/local/bin --strip-components 1 linux-${TARGETARCH}/helm && \
     rm "${HELM_FILENAME}" && \
     [ "$(helm version --template '{{.Version}}')" = "${HELM_VERSION}" ]
 
@@ -48,7 +50,7 @@ RUN set -x && \
 ENV KUBECTL_VERSION="v1.25.2"
 ARG KUBECTL_SHA256="8639f2b9c33d38910d706171ce3d25be9b19fc139d0e3d4627f38ce84f9040eb"
 RUN set -x && \
-    curl --retry 5 --retry-connrefused -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
+    curl --retry 5 --retry-connrefused -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" && \
     echo "${KUBECTL_SHA256}  kubectl" | sha256sum -c && \
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/kubectl && \
@@ -56,7 +58,7 @@ RUN set -x && \
 
 ENV KUSTOMIZE_VERSION="v4.5.7"
 ARG KUSTOMIZE_SHA256="701e3c4bfa14e4c520d481fdf7131f902531bfc002cb5062dcf31263a09c70c9"
-ARG KUSTOMIZE_FILENAME="kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+ARG KUSTOMIZE_FILENAME="kustomize_${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz"
 RUN set -x && \
     curl --retry 5 --retry-connrefused -LO "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/${KUSTOMIZE_FILENAME}" && \
     echo "${KUSTOMIZE_SHA256}  ${KUSTOMIZE_FILENAME}" | sha256sum -c && \
@@ -65,7 +67,7 @@ RUN set -x && \
     kustomize version --short | grep "kustomize/${KUSTOMIZE_VERSION}"
 
 ENV SOPS_VERSION="v3.7.3"
-ARG SOPS_FILENAME="sops-${SOPS_VERSION}.linux.amd64"
+ARG SOPS_FILENAME="sops-${SOPS_VERSION}.linux.${TARGETARCH}"
 RUN set -x && \
     curl --retry 5 --retry-connrefused -LO "https://github.com/mozilla/sops/releases/download/${SOPS_VERSION}/${SOPS_FILENAME}" && \
     chmod +x "${SOPS_FILENAME}" && \
@@ -73,7 +75,7 @@ RUN set -x && \
     sops --version | grep -E "^sops ${SOPS_VERSION#v}"
 
 ENV AGE_VERSION="v1.0.0"
-ARG AGE_FILENAME="age-${AGE_VERSION}-linux-amd64.tar.gz"
+ARG AGE_FILENAME="age-${AGE_VERSION}-linux-${TARGETARCH}.tar.gz"
 RUN set -x && \
     curl --retry 5 --retry-connrefused -LO "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/${AGE_FILENAME}" && \
     tar xvf "${AGE_FILENAME}" -C /usr/local/bin --strip-components 1 age/age age/age-keygen && \
@@ -90,7 +92,6 @@ RUN helm plugin install https://github.com/databus23/helm-diff --version v3.6.0 
 # Allow users other than root to use helm plugins located in root home
 RUN chmod 751 ${HOME}
 
-ARG TARGETARCH
 COPY --from=builder /workspace/helmfile/dist/helmfile_linux_${TARGETARCH} /usr/local/bin/helmfile
 
 CMD ["/usr/local/bin/helmfile"]
