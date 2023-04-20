@@ -32,17 +32,18 @@ ENV HELM_DATA_HOME="${HELM_DATA_HOME}"
 
 ARG HELM_VERSION="v3.11.3"
 ENV HELM_VERSION="${HELM_VERSION}"
-ARG HELM_SHA256="ca2d5d40d4cdfb9a3a6205dd803b5bc8def00bd2f13e5526c127e9b667974a89"
+ARG HELM_amd64_SHA256="ca2d5d40d4cdfb9a3a6205dd803b5bc8def00bd2f13e5526c127e9b667974a89"
+ARG HELM_arm64_SHA256="9f58e707dcbe9a3b7885c4e24ef57edfb9794490d72705b33a93fa1f3572cce4"
 ARG HELM_LOCATION="https://get.helm.sh"
 ARG HELM_FILENAME="helm-${HELM_VERSION}-linux-${TARGETARCH}.tar.gz"
-RUN set -x && \
-    curl --retry 5 --retry-connrefused -LO "${HELM_LOCATION}/${HELM_FILENAME}" && \
-    echo Verifying ${HELM_FILENAME}... && \
-    echo "${HELM_SHA256}  ${HELM_FILENAME}" | sha256sum -c && \
-    echo Extracting ${HELM_FILENAME}... && \
-    tar xvf "${HELM_FILENAME}" -C /usr/local/bin --strip-components 1 linux-${TARGETARCH}/helm && \
-    rm "${HELM_FILENAME}" && \
-    [ "$(helm version --template '{{.Version}}')" = "${HELM_VERSION}" ]
+RUN set -x
+RUN curl --retry 5 --retry-connrefused -LO "${HELM_LOCATION}/${HELM_FILENAME}"
+RUN echo Verifying ${HELM_FILENAME}...
+RUN echo "${HELM_${TARGETARCH}_SHA256}  ${HELM_FILENAME}" | sha256sum -c
+RUN echo Extracting ${HELM_FILENAME}...
+RUN tar xvf "${HELM_FILENAME}" -C /usr/local/bin --strip-components 1 linux-${TARGETARCH}/helm
+RUN rm "${HELM_FILENAME}"
+RUN [ "$(helm version --template '{{.Version}}')" = "${HELM_VERSION}" ]
 
 # using the install documentation found at https://kubernetes.io/docs/tasks/tools/install-kubectl/
 # for now but in a future version of alpine (in the testing version at the time of writing)
